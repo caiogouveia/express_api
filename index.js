@@ -27,6 +27,30 @@ app.get("/", (req, res) => {
   res.render('signup.ejs');
 });
 
+// Sign up post
+app.post('sign-up', (request, response)=>{
+    const email = request.body.email;
+    const secret = authenticator.generateSecret();
+    const db = new sqlite3.Database('db.sqlite');
+    db.serialize(()=>{
+        db.run('INSERT INTO `users`(`email`, `secret`) VALUES (?, ?)',
+        [secret, email],
+        (err) => {
+            if (err){
+                throw err;
+            }
+            QRCode.toDataURL(authenticator.keyuri(email, 'otp-app', secret), (err, url) => {
+                if(err){
+                    throw err;
+                }
+                request.session.qr = url;
+                request.session.email = email;
+                response.redirect('/sign-up-2fs');
+            });
+        });
+    });
+});
+
 app.listen(port, () => {
   console.log('Server started.');
   }
